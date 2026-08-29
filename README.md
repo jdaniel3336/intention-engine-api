@@ -54,8 +54,10 @@ automatically) — the migration template already includes this import.
 project, attach a Postgres plugin (which sets `DATABASE_URL`
 automatically), and set the remaining env vars from `.env.example`
 (`JWT_SECRET`, `LLM_PROVIDER`, `LLM_API_KEY`, `CORS_ORIGINS` — set this to
-your deployed frontend's URL). The release phase runs migrations
-automatically before each deploy.
+your deployed frontend's URL). Railway doesn't support Heroku-style
+`release:` process types, so migrations run as the first step of the
+`web:` process itself (`alembic upgrade head && uvicorn ...`) — every
+deploy migrates before serving traffic.
 
 ## Project layout
 
