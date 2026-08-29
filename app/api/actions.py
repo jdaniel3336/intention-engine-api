@@ -14,12 +14,7 @@ from app.schemas.action import ActionRead
 router = APIRouter(prefix="/actions", tags=["actions"])
 
 
-@router.post("/{action_id}/complete", response_model=ActionRead)
-def complete_action(
-    action_id: uuid.UUID,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-) -> Action:
+def get_owned_action(action_id: uuid.UUID, db: Session, current_user: User) -> Action:
     action = (
         db.query(Action)
         .join(Intention, Action.intention_id == Intention.id)
@@ -28,9 +23,32 @@ def complete_action(
     )
     if action is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Action not found")
+    return action
 
+
+@router.post("/{action_id}/complete", response_model=ActionRead)
+def complete_action(
+    action_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> Action:
+    action = get_owned_action(action_id, db, current_user)
     action.status = ActionStatus.COMPLETED
     action.completed_at = datetime.now(timezone.utc)
+    db.commit()
+    db.refresh(action)
+    return action
+
+
+@router.post("/{action_id}/uncomplete", response_model=ActionRead)
+def uncomplete_action(
+    action_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> Action:
+    action = get_owned_action(action_id, db, current_user)
+    action.status = ActionStatus.PENDING
+    action.completed_at = None
     db.commit()
     db.refresh(action)
     return action

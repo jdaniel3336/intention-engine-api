@@ -66,6 +66,20 @@ def test_full_vertical_slice(client, auth_headers):
     assert response.status_code == 200
     assert response.json()["title"] == "Third action"
 
+    # Uncompleting the first action makes it the next action again, since it
+    # has the same priority (1) as "Third action" but was created earlier.
+    response = client.post(
+        f"/actions/{next_action['id']}/uncomplete", headers=auth_headers
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "pending"
+    assert body["completed_at"] is None
+
+    response = client.get(f"/intentions/{intention_id}/next-action", headers=auth_headers)
+    assert response.status_code == 200
+    assert response.json()["title"] == "First action"
+
 
 def test_signup_requires_unique_email(client):
     payload = {"email": "dup@example.com", "password": "supersecret123"}
